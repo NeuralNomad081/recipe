@@ -1,25 +1,28 @@
 from flask import Flask, request, jsonify
-from transformers import pipeline
+from dotenv import  dotenv_values
+from huggingface_hub import InferenceClient
 
-app = Flask(__name__)
+# Load environment variables from .env file
+key = dotenv_values(".env")["Bearer"]
 
-# Load the model
-generator = pipeline("text2text-generation", model="google/flan-t5-small")
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    ingredients = request.json.get('ingredients')
-    if not ingredients:
-        return jsonify({'error': 'Ingredients are required'}), 400
+client = InferenceClient(
+	provider="fireworks-ai",
+	api_key="f{key}"
+)
 
-    prompt = f"Given these ingredients: {', '.join(ingredients)}, suggest a recipe."
+messages = [
+	{
+		"role": "user",
+		"content" : "Hello there can you give me a recipe for a tomato soup"
+	}
+]
 
-    try:
-        result = generator(prompt, max_length=200) 
-        predicted_recipe = result[0]['generated_text']
-        return jsonify({'recipe': predicted_recipe})
-    except Exception as e:
-        return jsonify({'error': f"Model inference failed: {e}"}), 500
+completion = client.chat.completions.create(
+    model="meta-llama/Llama-3.1-8B-Instruct", 
+	messages=messages, 
+	max_tokens=500,
+)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+print(completion.choices[0].message)
+#push to the front end results side
