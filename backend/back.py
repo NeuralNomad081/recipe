@@ -1,28 +1,48 @@
+from groq import Groq
+from dotenv import load_dotenv
+import os
 from flask import Flask, request, jsonify
-from dotenv import  dotenv_values
-from huggingface_hub import InferenceClient
+from flask_cors import CORS
 
-# Load environment variables from .env file
-key = dotenv_values(".env")["Bearer"]
+server = Flask(__name__)
+load_dotenv()
+CORS(server)
+@server.route("/generate", methods=['POST'])
+def generate_res():
+    message = request.json.get('message')
+    client = Groq(
+		api_key=os.environ.get("GROQ_API_KEY"),
+	)
+    completion = client.chat.completions.create(
+		model="deepseek-r1-distill-qwen-32b",
+		messages=[
+			{
+				"role":"user",
+				"content": f"respond in json : {message}"
+			}
+			],
+		temperature=0.6,
+		max_completion_tokens=4096,
+		top_p=0.95,
+		stream=False,
+		stop=None,
+	)
+    response= completion.choices[0].message.content
+    try:
+        import json
+        parsed_json = json.loads(response)
+        return jsonify({"response": response})
+    except json.JSONDecodeError:
+        return jsonify({
+                "error": "Invalid JSON received from AI",
+                "raw_response": response
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "type": str(type(e).__name__)
+        }), 500
 
-
-client = InferenceClient(
-	provider="fireworks-ai",
-	api_key="f{key}"
-)
-
-messages = [
-	{
-		"role": "user",
-		"content" : "Hello there can you give me a recipe for a tomato soup"
-	}
-]
-
-completion = client.chat.completions.create(
-    model="meta-llama/Llama-3.1-8B-Instruct", 
-	messages=messages, 
-	max_tokens=500,
-)
-
-print(completion.choices[0].message)
-#push to the front end results side
+if __name__ == "__main__":
+    server.run(debug=True, port=3000)
