@@ -1,9 +1,36 @@
-import React, { useState } from 'react';
+import{ useState } from 'react';
 import { ChefHat } from 'lucide-react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { IngredientInput } from './components/IngredientInput';
 import { RecipeCard } from './components/RecipeCard';
 import type { Ingredient, Recipe } from './types';
+
+const extractJSONFromResponse = (text: string): object => {
+  // Remove AI thinking process and markdown
+  const cleanText = text
+    .replace(/<think>[\s\S]*?<\/think>/g, '')
+    .replace(/```json\n?|\n?```/g, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error('JSON Parse Error:', error);
+    console.log('Raw text:', cleanText);
+    throw new Error('Invalid recipe format received');
+  }
+};
+
+const validateRecipe = (data: Record<string, unknown>): Recipe => {
+  const requiredFields = ['id', 'name', 'ingredients', 'instructions', 'cookingTime', 'servings', 'imageUrl'];
+  const missingFields = requiredFields.filter(field => !data[field]);
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Invalid recipe format. Missing fields: ${missingFields.join(', ')}`);
+  }
+
+  return data as unknown as Recipe;
+};
 
 const predictRecipes = async (ingredients: Ingredient[]): Promise<Recipe[]> => {
   try {
@@ -14,19 +41,19 @@ const predictRecipes = async (ingredients: Ingredient[]): Promise<Recipe[]> => {
       message
     });
 
-    // Parse the response string as JSON since the API returns JSON as a string
-    const recipe = JSON.parse(response.data.response);
-    if (!recipe.name || !recipe.ingredients) {
-      throw new Error('Invalid recipe format received');
-    }
+    const jsonData = extractJSONFromResponse(response.data.response);
+    const recipe = validateRecipe(jsonData as Record<string, unknown>);
     
-    // Ensure the recipe matches our expected format
     return [recipe];
   } catch (error) {
-    if(error instanceof SyntaxError){
-      console.log("Invalid JSON response", error);
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      console.error('API Error:', axiosError.response?.data);
+      const errorMessage: string = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'error' in axiosError.response.data
+        ? axiosError.response.data.error as string
+        : 'Failed to communicate with recipe service';
+      throw new Error(errorMessage);
     }
-    console.error('Error predicting recipes:', error);
     throw error;
   }
 };
@@ -37,14 +64,21 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const handleIngredientsSubmit = async (ingredients: Ingredient[]) => {
+    if (!ingredients.length) {
+      setError('Please add at least one ingredient');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    
     try {
       const predictedRecipes = await predictRecipes(ingredients);
       setRecipes(predictedRecipes);
     } catch (error) {
-      console.error('Failed to predict recipes:', error);
-      setError('Failed to generate recipe. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipe';
+      console.error('Recipe generation error:', error);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -68,7 +102,7 @@ function App() {
         </div>
 
         {error && (
-          <div className="text-center text-red-600 mb-8">
+          <div className="text-center text-red-600 mb-8 p-4 bg-red-50 rounded-md">
             {error}
           </div>
         )}
@@ -76,7 +110,7 @@ function App() {
         {loading && (
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Generating recipe...</p>
+            <p className="mt-4 text-gray-600">Generating your recipe...</p>
           </div>
         )}
 
@@ -89,7 +123,7 @@ function App() {
         )}
 
         {!loading && recipes.length === 0 && !error && (
-          <div className="text-center text-gray-600">
+          <div className="text-center text-gray-600 p-8 bg-white rounded-lg shadow-sm">
             Enter ingredients above to get recipe predictions
           </div>
         )}
