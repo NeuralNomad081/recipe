@@ -9,8 +9,9 @@ RUN npm ci
 # Copy rest of the files
 COPY . .
 
-# Build the app
-RUN npm run build
+# Build the app with the environment variable
+ARG VITE_API_URL
+RUN VITE_API_URL=$VITE_API_URL npm run build
 
 # Install serve
 RUN npm install -g serve
