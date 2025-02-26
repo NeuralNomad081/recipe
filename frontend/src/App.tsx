@@ -12,16 +12,41 @@ const predictRecipes = async (ingredients: Ingredient[]): Promise<Recipe[]> => {
     const ingredientsList = ingredients.map(ing => ing.name).join(', ');
     const message = `Generate a recipe using these ingredients: ${ingredientsList}. Return a JSON object with this exact structure: { "id": "string", "name": "string", "ingredients": [{"name": "string", "quantity": "string"}], "instructions": ["string"], "cookingTime": "string", "servings": number, "imageUrl": "string" }`;
     
+    //debug
+    console.log("Sending request to:", `${API_URL}/generate`);
     const response = await axios.post(`${API_URL}/generate`, {
       message
     });
+    console.log("Response received:", response.data);
+    if (response.data.error){
+      throw new Error(response.data.error);
+    }
 
-    const recipe = JSON.parse(response.data.response);
+    let recipe;
+    try {
+      recipe = JSON.parse(response.data.response);
+    } catch (parseError) {
+      console.error("Parse error:", parseError);
+      // If there's a raw_response field, try to use that directly
+      if (response.data.raw_response) {
+        // Try to handle it as a raw string that might be valid JSON
+        try {
+          // Replace common invalid escape sequences
+          const cleanedJson = response.data.raw_response.replace(/\\_/g, '_');
+          recipe = JSON.parse(cleanedJson);
+        } catch (secondError) {
+          console.error("Second parse error:", secondError);
+          throw new Error("Failed to parse recipe data");
+        }
+      } else {
+        throw new Error("Invalid response format");
+      }
+    }
     return [recipe];
-  } catch (error) {
-    console.error('Error predicting recipes:', error);
-    throw error;
-  }
+}catch(error){
+  console.log("Error predicting recipes:", error);
+  throw error;
+}
 };
 
 function App() {

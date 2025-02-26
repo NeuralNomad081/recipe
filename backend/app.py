@@ -24,6 +24,8 @@ def clean_json_response(text: str) -> str:
     text = re.sub(r'```json\n?|\n?```', '', text)
     # remove remaining whitespaces 
     text = text.strip()
+    #Fix invalid escape sequences
+    text = text.replace('\\_', '_')  # Replace problematic escape sequence
     # Remove any trailing commas before closing braces/brackets
     text = re.sub(r',(\s*[}\]])', r'\1', text)
     return text
