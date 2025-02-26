@@ -1,0 +1,16 @@
+# nixpacks.toml
+[phases.setup]
+nixPkgs = ["python310", "bash", "gcc"]
+
+[phases.install]
+# Combine all commands into a single bash execution to maintain the activated venv
+cmds = [
+  "bash -c 'python3 -m venv /tmp/venv && source /tmp/venv/bin/activate && cd backend && pip install -r requirements.txt'"
+]
+
+[start]
+# Use bash to ensure the venv is activated before starting the app
+cmd = "bash -c 'source /tmp/venv/bin/activate && cd backend && gunicorn app:app --bind 0.0.0.0:$PORT'"
+
+[env]
+PORT = "3000"

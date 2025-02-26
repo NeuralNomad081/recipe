@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { ChefHat, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { IngredientInput } from './components/IngredientInput';
