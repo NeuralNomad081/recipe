@@ -1,6 +1,0 @@
-Flask
-requests
-transformers
-dotenv
-groq
-flask_cors
