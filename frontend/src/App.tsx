@@ -5,12 +5,14 @@ import { IngredientInput } from './components/IngredientInput';
 import { RecipeCard } from './components/RecipeCard';
 import type { Ingredient, Recipe } from './types';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const predictRecipes = async (ingredients: Ingredient[]): Promise<Recipe[]> => {
   try {
     const ingredientsList = ingredients.map(ing => ing.name).join(', ');
     const message = `Generate a recipe using these ingredients: ${ingredientsList}. Return a JSON object with this exact structure: { "id": "string", "name": "string", "ingredients": [{"name": "string", "quantity": "string"}], "instructions": ["string"], "cookingTime": "string", "servings": number, "imageUrl": "string" }`;
     
-    const response = await axios.post('http://localhost:3000/generate', {
+    const response = await axios.post(`${API_URL}/generate`, {
       message
     });
 
