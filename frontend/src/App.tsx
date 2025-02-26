@@ -1,36 +1,9 @@
-import{ useState } from 'react';
-import { ChefHat } from 'lucide-react';
-import axios, { AxiosError } from 'axios';
+import React, { useState } from 'react';
+import { ChefHat, Sparkles } from 'lucide-react';
+import axios from 'axios';
 import { IngredientInput } from './components/IngredientInput';
 import { RecipeCard } from './components/RecipeCard';
 import type { Ingredient, Recipe } from './types';
-
-const extractJSONFromResponse = (text: string): object => {
-  // Remove AI thinking process and markdown
-  const cleanText = text
-    .replace(/<think>[\s\S]*?<\/think>/g, '')
-    .replace(/```json\n?|\n?```/g, '')
-    .trim();
-
-  try {
-    return JSON.parse(cleanText);
-  } catch (error) {
-    console.error('JSON Parse Error:', error);
-    console.log('Raw text:', cleanText);
-    throw new Error('Invalid recipe format received');
-  }
-};
-
-const validateRecipe = (data: Record<string, unknown>): Recipe => {
-  const requiredFields = ['id', 'name', 'ingredients', 'instructions', 'cookingTime', 'servings', 'imageUrl'];
-  const missingFields = requiredFields.filter(field => !data[field]);
-  
-  if (missingFields.length > 0) {
-    throw new Error(`Invalid recipe format. Missing fields: ${missingFields.join(', ')}`);
-  }
-
-  return data as unknown as Recipe;
-};
 
 const predictRecipes = async (ingredients: Ingredient[]): Promise<Recipe[]> => {
   try {
@@ -41,19 +14,10 @@ const predictRecipes = async (ingredients: Ingredient[]): Promise<Recipe[]> => {
       message
     });
 
-    const jsonData = extractJSONFromResponse(response.data.response);
-    const recipe = validateRecipe(jsonData as Record<string, unknown>);
-    
+    const recipe = JSON.parse(response.data.response);
     return [recipe];
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      console.error('API Error:', axiosError.response?.data);
-      const errorMessage: string = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'error' in axiosError.response.data
-        ? axiosError.response.data.error as string
-        : 'Failed to communicate with recipe service';
-      throw new Error(errorMessage);
-    }
+    console.error('Error predicting recipes:', error);
     throw error;
   }
 };
@@ -64,58 +28,59 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const handleIngredientsSubmit = async (ingredients: Ingredient[]) => {
-    if (!ingredients.length) {
-      setError('Please add at least one ingredient');
-      return;
-    }
-
     setLoading(true);
     setError(null);
-    
     try {
       const predictedRecipes = await predictRecipes(ingredients);
       setRecipes(predictedRecipes);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipe';
-      console.error('Recipe generation error:', error);
-      setError(errorMessage);
+      console.error('Failed to predict recipes:', error);
+      setError('Failed to generate recipe. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <ChefHat size={40} className="text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">Recipe Predictor</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="text-center mb-16">
+          <div className="inline-block p-3 rounded-full bg-blue-100 mb-6">
+            <ChefHat size={48} className="text-blue-600" />
           </div>
-          <p className="text-lg text-gray-600">
-            Enter your ingredients and let AI suggest delicious recipes for you
+          <h1 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+            Recipe Predictor
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Transform your available ingredients into delicious recipes with the power of AI
           </p>
         </div>
 
-        <div className="flex justify-center mb-12">
+        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8 mb-16">
+          <div className="flex items-center gap-2 mb-6">
+            <Sparkles className="text-yellow-500" size={24} />
+            <h2 className="text-2xl font-semibold text-gray-800">
+              What's in your kitchen?
+            </h2>
+          </div>
           <IngredientInput onIngredientsSubmit={handleIngredientsSubmit} />
         </div>
 
         {error && (
-          <div className="text-center text-red-600 mb-8 p-4 bg-red-50 rounded-md">
-            {error}
+          <div className="max-w-2xl mx-auto text-center p-4 bg-red-50 rounded-lg border border-red-200 mb-8">
+            <p className="text-red-600">{error}</p>
           </div>
         )}
 
         {loading && (
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Generating your recipe...</p>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-lg text-gray-600">Crafting your perfect recipe...</p>
           </div>
         )}
 
         {!loading && recipes.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {recipes.map((recipe) => (
               <RecipeCard key={recipe.id} recipe={recipe} />
             ))}
@@ -123,8 +88,10 @@ function App() {
         )}
 
         {!loading && recipes.length === 0 && !error && (
-          <div className="text-center text-gray-600 p-8 bg-white rounded-lg shadow-sm">
-            Enter ingredients above to get recipe predictions
+          <div className="text-center py-12">
+            <p className="text-lg text-gray-500">
+              Add your ingredients above and let's create something delicious!
+            </p>
           </div>
         )}
       </div>

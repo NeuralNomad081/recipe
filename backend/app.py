@@ -14,11 +14,19 @@ app = Flask(__name__)
 CORS(app)
 
 def clean_json_response(text: str) -> str:
+    if not text:
+        raise ValueError("Empty response recived from API")
+    # Remove any leading/trailing whitespaces
+    text = text.strip()
     # Remove thinking process
     text = re.sub(r'<think>[\s\S]*?</think>', '', text)
     # Remove markdown code blocks
     text = re.sub(r'```json\n?|\n?```', '', text)
-    return text.strip()
+    # remove remaining whitespaces 
+    text = text.strip()
+    # Remove any trailing commas before closing braces/brackets
+    text = re.sub(r',(\s*[}\]])', r'\1', text)
+    return text
 
 # Initialize Groq client
 client = Groq(api_key=os.getenv('GROQ_API_KEY'))
@@ -32,9 +40,25 @@ def generate_recipe():
         if not message:
             return jsonify({'error': 'No message provided'}), 400
         
-
+        # Create a more structured prompt to ensure valid JSON response
+        formatted_prompt = f"""
+        Create a recipe using these ingredients: {message}
+        
+        Respond with ONLY a JSON object in this EXACT format, with NO additional text or markdown:
+        {{
+            "id": "unique_string",
+            "name": "recipe_name",
+            "ingredients": [
+                {{"name": "ingredient_name", "quantity": "amount"}}
+            ],
+            "instructions": ["step1", "step2"],
+            "cookingTime": "time_in_minutes",
+            "servings": number,
+            "imageUrl": "https://example.com/image.jpg"
+        }}
+        """
         completion = client.chat.completions.create(
-            model="deepseek-r1-distill-qwen-32b",  
+            model="mixtral-8x7b-32768",  
             messages=[
                 {
                     "role": "system",
@@ -42,7 +66,7 @@ def generate_recipe():
                 },
                 {
                     "role": "user",
-                    "content": message
+                    "content": formatted_prompt
                 }
             ],
             temperature=0.7,
@@ -50,8 +74,12 @@ def generate_recipe():
         )
 
         # Extract and validate the response
-        recipe_response = completion.choices[0].message.content
+        recipe_response = completion.choices[0].message.content.strip()
+        if not recipe_response:
+            return jsonify({'error': 'Empty response from API'}), 500
+        print("Raw response API", recipe_response)
         cleaned_response = clean_json_response(recipe_response)
+        print("Clean Response", cleaned_response)
         
         try:
             parsed_json = json.loads(cleaned_response)

@@ -26,26 +26,28 @@ export function IngredientInput({ onIngredientsSubmit }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const validIngredients = ingredients.filter(ing => ing.name.trim() !== '');
+    if (validIngredients.length === 0) return;
     onIngredientsSubmit(validIngredients);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-lg">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         {ingredients.map((ingredient, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={index} className="flex items-center gap-3">
             <input
               type="text"
               value={ingredient.name}
               onChange={(e) => updateIngredient(index, e.target.value)}
-              placeholder="Enter an ingredient"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter an ingredient (e.g., chicken, tomatoes, pasta)"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             />
             {ingredients.length > 1 && (
               <button
                 type="button"
                 onClick={() => removeIngredient(index)}
-                className="p-2 text-red-500 hover:text-red-700"
+                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                aria-label="Remove ingredient"
               >
                 <X size={20} />
               </button>
@@ -54,21 +56,21 @@ export function IngredientInput({ onIngredientsSubmit }: Props) {
         ))}
       </div>
       
-      <div className="mt-4 flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <button
           type="button"
           onClick={addIngredient}
-          className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors duration-200"
         >
           <Plus size={20} />
-          Add Ingredient
+          Add Another Ingredient
         </button>
         
         <button
           type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
         >
-          Predict Recipes
+          Generate Recipe
         </button>
       </div>
     </form>
