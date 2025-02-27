@@ -5,7 +5,8 @@ import { IngredientInput } from './components/IngredientInput';
 import { RecipeCard } from './components/RecipeCard';
 import type { Ingredient, Recipe } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "http://127.0.0.1:3000"
 
 /**
  * Attempts to extract a valid recipe from various response formats
@@ -153,21 +154,28 @@ function App() {
           </div>
         )}
 
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-lg text-gray-600">Crafting your perfect recipe...</p>
-          </div>
-        )}
-
-        {!loading && recipes.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {recipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
-            ))}
-          </div>
-        )}
-
+{loading && (
+  <div className="max-w-6xl mx-auto">
+    <div className="flex flex-col items-center justify-center gap-8">
+      {recipes.map((recipe) => (
+        <div key={recipe.id} className="w-full max-w-2xl">
+          <RecipeCard recipe={recipe} />
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+{!loading && recipes.length > 0 && (
+  <div className="max-w-6xl mx-auto">
+    <div className="flex flex-col items-center justify-center gap-8">
+      {recipes.map((recipe) => (
+        <div key={recipe.id} className="w-full max-w-2xl">
+          <RecipeCard key={recipe.id} recipe={recipe} />
+        </div>
+      ))}
+    </div>
+  </div>
+)}
         {!loading && recipes.length === 0 && !error && (
           <div className="text-center py-12">
             <p className="text-lg text-gray-500">
