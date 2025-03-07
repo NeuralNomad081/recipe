@@ -60,7 +60,7 @@ def generate_recipe():
         }}
         """
         completion = client.chat.completions.create(
-            model="mixtral-8x7b-32768",  
+            model="mistral-saba-24b",  
             messages=[
                 {
                     "role": "system",
